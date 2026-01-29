@@ -1,36 +1,45 @@
 #!/usr/bin/env python3
-from typing import List
-from utils import get_json, memoize
+"""
+Utility functions for unit and integration tests
+"""
+from typing import Mapping, Sequence, Any, Callable
+import requests
+from functools import wraps
 
 
-class GithubOrgClient:
-    ORG_URL = "https://api.github.com/orgs/{}"
+def access_nested_map(nested_map: Mapping, path: Sequence) -> Any:
+    """
+    Access a value in a nested map using a sequence of keys.
 
-    def __init__(self, org_name: str):
-        self.org_name = org_name
+    Raises KeyError if a key is missing or path is invalid.
+    """
+    for key in path:
+        if not isinstance(nested_map, dict):
+            raise KeyError(key)
+        if key not in nested_map:
+            raise KeyError(key)
+        nested_map = nested_map[key]
+    return nested_map
 
-    @property
-    def org(self):
-        return get_json(self.ORG_URL.format(self.org_name))
 
-    @property
-    def _public_repos_url(self):
-        return self.org["repos_url"]
+def get_json(url: str) -> Any:
+    """
+    Get JSON response from a URL.
+    """
+    response = requests.get(url)
+    return response.json()
 
-    @memoize
-    def repos_payload(self):
-        return get_json(self._public_repos_url)
 
-    def public_repos(self, license=None) -> List[str]:
-        repos = self.repos_payload()
-        result = []
-        for repo in repos:
-            if license is None or self.has_license(repo, license):
-                result.append(repo["name"])
-        return result
+def memoize(method: Callable) -> Callable:
+    """
+    Decorator to memoize a method.
+    """
+    attr_name = "_{}".format(method.__name__)
 
-    @staticmethod
-    def has_license(repo, license_key):
-        if repo.get("license") is None:
-            return False
-        return repo["license"].get("key") == license_key
+    @wraps(method)
+    def wrapper(self):
+        if not hasattr(self, attr_name):
+            setattr(self, attr_name, method(self))
+        return getattr(self, attr_name)
+
+    return wrapper

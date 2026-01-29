@@ -1,0 +1,10 @@
+# Ignore Visual Studio files
+.vs/
+*.user
+*.suo
+*.log
+
+# Ignore Python virtual environment
+venv/
+__pycache__/
+*.pyc
