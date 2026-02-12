@@ -1,0 +1,24 @@
+from datetime import datetime
+import logging
+import os
+
+# Make sure the log file exists
+log_file_path = os.path.join(os.path.dirname(__file__), 'requests.log')
+
+logging.basicConfig(
+    filename=log_file_path,
+    level=logging.INFO,
+    format='%(message)s'
+)
+
+class RequestLoggingMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        user = getattr(request, 'user', 'Anonymous')
+        log_message = f"{datetime.now()} - User: {user} - Path: {request.path}"
+        logging.info(log_message)
+
+        response = self.get_response(request)
+        return response
